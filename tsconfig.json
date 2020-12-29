@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": false,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "declaration": false,
+    "forceConsistentCasingInFileNames": true
+  }
+}

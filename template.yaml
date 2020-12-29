@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: tumbling-windows-learning
+
+Globals:
+  Function:
+    Runtime: nodejs12.x
+    Handler: handler.handler
+    Timeout: 3
+
+Resources:
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowMethods:
+          - GET
+          - OPTIONS
+        AllowOrigins:
+          - "*"
+
+  PutEventDataFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/event-putter
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource:
+                - !GetAtt EventsTable.Arn
+                - !Sub "${EventsTable.Arn}/*"
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref EventsTable
+      Events:
+        PutEvent:
+          Type: HttpApi
+          Properties:
+            Path: /put
+            Method: get
+            ApiId: !Ref HttpApi
+    Metadata:
+      BuildMethod: makefile
+
+  CountEventsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/event-counter
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource:
+                - !GetAtt EventsTable.Arn
+                - !Sub "${EventsTable.Arn}/*"
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref EventsTable
+      Events:
+        StreamingEvent:
+          Type: DynamoDB
+          Properties:
+            BatchSize: 1
+            Enabled: true
+            Stream: !GetAtt EventsTable.StreamArn
+            StartingPosition: TRIM_HORIZON
+            TumblingWindowInSeconds: 1
+    Metadata:
+      BuildMethod: makefile
+
+  EventsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      TableName: tumbling-windows-table
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
+
+Outputs:
+  ApiUrl:
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+  EventCounterName:
+    Value: !Ref CountEventsFunction

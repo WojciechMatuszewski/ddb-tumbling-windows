@@ -1,0 +1,10 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "learning-tumbling-windows"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-bg9nh7vdlr48"
+s3_prefix = "learning-tumbling-windows"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
